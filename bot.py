@@ -5,6 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Conve
 import sqlite3
 import datetime
 from ownbot.auth import requires_usergroup, assign_first_to
+from ownbot.admincommands import AdminCommands
 
 from utils import *
 from queries import *
@@ -246,6 +247,7 @@ if __name__ == '__main__':
   updater.dispatcher.add_handler(MessageHandler(Filters.text, logmessage, pass_job_queue=True, pass_chat_data=True))
 
   updater.dispatcher.add_error_handler(error)
+  AdminCommands(updater.dispatcher)
 
   updater.start_polling()
   updater.idle()
