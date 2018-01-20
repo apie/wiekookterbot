@@ -11,6 +11,7 @@ from ownbot.admincommands import AdminCommands
 
 from utils import *
 from queries import *
+from ical import *
 from settings import API_KEY
 
 log = logging.getLogger()
@@ -211,9 +212,11 @@ def opslaan(bot, update, user_data):
         naam = APART
     if update.message.text == 'Ja':
       op_slaan(naam, user_data['datum'])
+      generate_ical()
       update.message.reply_text('Opgeslagen!')
     elif update.message.text == 'Weghalen':
       op_slaan(ONBEKEND, user_data['datum'])
+      generate_ical()
       update.message.reply_text('Weggehaald!')
     update.message.reply_text('Dat was het!',
                               reply_markup=ReplyKeyboardRemove())

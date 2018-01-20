@@ -8,10 +8,7 @@ import queries
 
 def generate_ical():
   tzinfo = pytz.timezone('Europe/Amsterdam')
-
-  kokers = queries.get_kokers(datetime.date.today(), datetime.date.today() + datetime.timedelta(days=1))
-
-
+  kokers = queries.get_kokers(datetime.date.today(), datetime.date.today() + datetime.timedelta(days=7))
   cal = Calendar()
 
   for koker in kokers:
@@ -27,11 +24,12 @@ def generate_ical():
 
     cal.add_component(event)
 
-
   directory = 'ics/'
-  f = open(os.path.join(directory, 'kokers.ics'), 'wb')
-  f.write(cal.to_ical())
-  f.close()
+  if not os.path.isdir(directory):
+    os.mkdir(directory)
+  with open(os.path.join(directory, 'kokers.ics'), 'wb') as f:
+    f.write(cal.to_ical())
 
 if __name__ == '__main__':
   generate_ical()
+
