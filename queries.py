@@ -1,5 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import sqlite3
+import logging
 from utils import ONBEKEND
 
 def init_db():
@@ -16,12 +17,12 @@ def init_db():
     con.close()
     return True
   except:
-    print('help')
+    logging.error('Could not create database')
     return False
 
 def get_koker(datum):
-  print('in get_koker')
-  print(datum)
+  logging.info('in get_koker')
+  logging.info(datum)
   con = sqlite3.connect('bot.db')
   cur = con.cursor()
   query = 'SELECT name FROM KOKEN WHERE date="%s" ORDER BY ID DESC' % datum
@@ -33,7 +34,7 @@ def get_koker(datum):
     naam = naam[0]
   else:
     naam = ONBEKEND
-  print(naam)
+  logging.info(naam)
   return naam
 
 def get_kokers(startdatum, einddatum):
@@ -47,7 +48,7 @@ def get_kokers(startdatum, einddatum):
   return kokers
 
 def op_slaan(naam, datum):
-  print 'opslaan %s %s' % (naam, datum)
+  logging.info('opslaan %s %s' % (naam, datum))
   con = sqlite3.connect('bot.db')
   cur = con.cursor()
   query = 'INSERT INTO KOKEN (name,date) VALUES ("%s", "%s");' % (naam, datum)

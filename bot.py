@@ -1,9 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #By Apie, 2017
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
 import sqlite3
 import datetime
+import logging
+import sys
 from ownbot.auth import requires_usergroup, assign_first_to
 from ownbot.admincommands import AdminCommands
 
@@ -11,13 +13,20 @@ from utils import *
 from queries import *
 from settings import API_KEY
 
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+ch = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
+
 APART = 'Apart'
 DEELNEMERS, DAG, BEVESTIGEN = range(3)
 
 @assign_first_to("admin")
 @requires_usergroup("user")
 def start(bot, update):
-  print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+  logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
   update.message.reply_text('''Met /wie <dag> vraag je op wie er gaat koken.
 Met /overzicht krijg je een overzicht van wie er deze week gaat koken.
 Met /ikke krijg je een interactieve sessie om aan te geven wanneer je gaat koken.
@@ -25,14 +34,14 @@ Met /ikke krijg je een interactieve sessie om aan te geven wanneer je gaat koken
 
 @requires_usergroup("user")
 def hello(bot, update):
-  print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+  logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
   reply_text = 'Hallo {}'.format(update.message.from_user.first_name)
-  print '>>', reply_text
+  logging.info('>> %s' % reply_text)
   update.message.reply_text(reply_text)
 
 @requires_usergroup("user")
 def wiekookter(bot, update):
-  print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+  logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
   error = False
   datum = datetime.datetime.now().date()
   if 'vandaag' in update.message.text or update.message.text == '/wie':
@@ -54,14 +63,14 @@ def wiekookter(bot, update):
         reply_text = '%s koken we allebei zelf.' % daystr.capitalize()
     else:
         reply_text = '%s kookt %s.' % (daystr.capitalize(), naam)
-    print '>>',reply_text
+    logging.info('>> %s' % reply_text)
     update.message.reply_text(reply_text)
   else:
     update.message.reply_text('Ik begreep je vraag niet.')
 
 @requires_usergroup("user")
 def overzicht(bot, update):
-  print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+  logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
   error = False
   startdatum = datetime.datetime.now().date()
   einddatum = startdatum
@@ -93,14 +102,14 @@ def overzicht(bot, update):
             reply_text += ['%s kookt %s.' % (daystr.capitalize(), naam)]
         datum += datetime.timedelta(days=1)
     reply_text = "\r\n".join(reply_text)
-  print '>>', reply_text
+  logging.info('>> %s' % reply_text)
   update.message.reply_text(reply_text)
 
 @requires_usergroup("user")
 def alarm(bot, job):
     """Send the alarm message."""
     reply_text = 'Beep!'
-    print '>>', reply_text
+    logging.info('>> %s' % reply_text)
     bot.send_message(job.context, text=reply_text)
 
 @requires_usergroup("user")
@@ -118,17 +127,17 @@ def set_timer(bot, update, arg, job_queue, chat_data):
         job = job_queue.run_once(alarm, due, context=chat_id)
         chat_data['job'] = job
         reply_text = 'Timer successfully set!'
-        print '>>', reply_text
+        logging.info('>> %s' % reply_text)
         update.message.reply_text(reply_text)
 
     except (IndexError, ValueError):
         reply_text = 'Usage: /set <seconds>'
-        print '>>', reply_text
+        logging.info('>> %s' % reply_text)
         update.message.reply_text(reply_text)
 
 @requires_usergroup("user")
 def logmessage(bot, update, job_queue, chat_data):
-  print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+  logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
   if update.message.text == 'hoi':
     hello(bot, update)
   elif update.message.text[:4] == 'set ' or update.message.text[:4] == 'Set ':
@@ -137,11 +146,11 @@ def logmessage(bot, update, job_queue, chat_data):
       arg = args[1]
       set_timer(bot, update, arg, job_queue, chat_data)
     except:
-      print 'Geen argument opgegeven'
+      logging.warn('Geen argument opgegeven')
 
 @requires_usergroup("user")
 def ikke(bot, update):
-    print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+    logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
     reply_keyboard = [['Apart', 'Samen']]
 
     reply_text = 'Gaan jullie apart eten of samen?\r\nGeef /cancel om te annuleren.'
@@ -152,7 +161,7 @@ def ikke(bot, update):
 
 @requires_usergroup("user")
 def deelnemers(bot, update, user_data):
-    print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+    logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
     user_data['deelnemers'] = update.message.text
     daystrl = get_daystrlist()
     reply_keyboard = [daystrl[:4], daystrl[-3:]]
@@ -168,21 +177,21 @@ def deelnemers(bot, update, user_data):
 
 @requires_usergroup("user")
 def bevestigen(bot, update, user_data):
-    print('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+    logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
     reply_keyboard = [['Ja', 'Nee', 'Weghalen']]
 
     naam = update.message.from_user.first_name
     dagje = update.message.text
     user_data['dag'] = dagje.lower()
     datum = daystrtodate(dagje.lower())
-    print 'datum:: %s' % datum
+    logging.info('datum:: %s' % datum)
     if not datum:
       reply_text = 'Ik begreep deze dag niet: %s' % dagje.lower()
       update.message.reply_text(reply_text)
       return
     user_data['datum'] = str(datum)
     naam = get_koker(datum)
-    print(naam)
+    logging.info(naam)
     if naam == ONBEKEND:
       zelf_str = ''
       if user_data['deelnemers'] == APART:
@@ -195,7 +204,7 @@ def bevestigen(bot, update, user_data):
     return BEVESTIGEN
 
 def opslaan(bot, update, user_data):
-    print('in opslaan')
+    logging.info('in opslaan')
     if user_data['deelnemers'] == 'Samen':
         naam = update.message.from_user.first_name
     else:
@@ -212,17 +221,17 @@ def opslaan(bot, update, user_data):
 
 # conversation cancel
 def cancel(bot, update):
-    print 'in cancel'
+    logging.info('in cancel')
     user = update.message.from_user
-    print("User %s canceled the conversation." % user.first_name)
+    logging.info("User %s canceled the conversation." % user.first_name)
     update.message.reply_text('Tot ziens.',
                               reply_markup=ReplyKeyboardRemove())
 
     return ConversationHandler.END
 
 def error(bot, update, error):
-  print('received: %s' % update.message.text)
-  print('error: %s' % error)
+  logging.info('received: %s' % update.message.text)
+  logging.error('error: %s' % error)
  
 if __name__ == '__main__':
   if not init_db():
