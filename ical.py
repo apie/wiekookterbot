@@ -11,7 +11,7 @@ def generate_ical():
   kokers = queries.get_kokers(datetime.date.today(), datetime.date.today() + datetime.timedelta(days=7))
   cal = Calendar()
 
-  for koker in kokers:
+  for koker in sorted(kokers, key=lambda x:x[0]):
     event = Event()
     datum = koker[0]
     naam = koker[1]
