@@ -18,6 +18,7 @@ def generate_ical():
     opmerking = koker[2]
     datumtype = datetime.datetime.strptime(datum, '%Y-%m-%d')
     event.add('summary', '%s kookt' % naam)
+    event.add('location', naam)
     event.add('description', opmerking)
     event.add('dtstart', datetime.datetime(year=datumtype.year, month=datumtype.month, day=datumtype.day, hour=18, minute=0, second=0, tzinfo=tzinfo))
     event.add('dtend',   datetime.datetime(year=datumtype.year, month=datumtype.month, day=datumtype.day, hour=20, minute=0, second=0, tzinfo=tzinfo))
