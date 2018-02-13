@@ -22,7 +22,7 @@ ch.setFormatter(formatter)
 log.addHandler(ch)
 
 APART = 'Apart'
-DEELNEMERS, DAG, BEVESTIGEN = range(3)
+S_DEELNEMERS, S_DAG, S_BEVESTIGEN, S_OPMERKING, S_OPSLAAN = range(5)
 
 @assign_first_to("admin")
 @requires_usergroup("user")
@@ -57,13 +57,17 @@ def wiekookter(bot, update):
     error = True
   # todo weekdagen / data
   if not error:
-    naam = get_koker(datum)
-    if naam == ONBEKEND:
+    koker = get_koker(datum)
+    logging.info(koker)
+    if koker['naam'] == ONBEKEND:
         reply_text = '%s kookt er nog niemand.' % daystr.capitalize()
-    elif naam == APART:
+    elif koker['naam'] == APART:
         reply_text = '%s koken we allebei zelf.' % daystr.capitalize()
     else:
-        reply_text = '%s kookt %s.' % (daystr.capitalize(), naam)
+        reply_text = '%s kookt %s.' % (daystr.capitalize(), koker['naam'])
+        opmerking = koker['opmerking']
+        if opmerking:
+            reply_text = '\r\n'.join([reply_text, 'Opmerking: %s' % opmerking])
     logging.info('>> %s' % reply_text)
     update.message.reply_text(reply_text)
   else:
@@ -81,8 +85,11 @@ def overzicht(bot, update):
     reply_text = 'Er kookt de hele week nog niemand.'
   else:
     kokersdict = dict()
-    for datum, naam in kokers:
-      kokersdict[datum] = naam
+    for datum, naam, opmerking in kokers:
+      kokersdict[datum] = {
+        'naam': naam,
+        'opmerking': opmerking,
+      }
     reply_text = []
     datum = startdatum
     for dag in range(7):
@@ -90,7 +97,11 @@ def overzicht(bot, update):
         if datumstr not in kokersdict:
            naam = ONBEKEND
         else:
-          naam = kokersdict[datumstr]
+          naam = kokersdict[datumstr]['naam']
+          opmerking_tekst = ''
+          opmerking = kokersdict[datumstr]['opmerking']
+          if opmerking != '':
+            opmerking_tekst = ' (%s)' % opmerking
         if dag in range(3):
             daystr = get_relative_daystr(dag)
         else:
@@ -98,15 +109,14 @@ def overzicht(bot, update):
         if naam == ONBEKEND:
             reply_text += ['%s kookt er nog niemand.' % daystr.capitalize()]
         elif naam == APART:
-            reply_text += ['%s koken we allebei zelf.' % daystr.capitalize()]
+            reply_text += ['%s koken we allebei zelf.%s' % (daystr.capitalize(), opmerking_tekst)]
         else:
-            reply_text += ['%s kookt %s.' % (daystr.capitalize(), naam)]
+            reply_text += ['%s kookt %s.%s' % (daystr.capitalize(), naam, opmerking_tekst)]
         datum += datetime.timedelta(days=1)
     reply_text = "\r\n".join(reply_text)
   logging.info('>> %s' % reply_text)
   update.message.reply_text(reply_text)
 
-@requires_usergroup("user")
 def alarm(bot, job):
     """Send the alarm message."""
     reply_text = 'Beep!'
@@ -158,7 +168,7 @@ def ikke(bot, update):
     update.message.reply_text(
         reply_text,
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
-    return DEELNEMERS
+    return S_DEELNEMERS
 
 @requires_usergroup("user")
 def deelnemers(bot, update, user_data):
@@ -174,7 +184,7 @@ def deelnemers(bot, update, user_data):
     update.message.reply_text(
         reply_text,
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True))
-    return DAG
+    return S_DAG
 
 @requires_usergroup("user")
 def bevestigen(bot, update, user_data):
@@ -191,33 +201,78 @@ def bevestigen(bot, update, user_data):
       update.message.reply_text(reply_text)
       return
     user_data['datum'] = str(datum)
-    naam = get_koker(datum)
-    logging.info(naam)
-    if naam == ONBEKEND:
+    koker = get_koker(datum)
+    logging.info(koker)
+    if koker['naam'] == ONBEKEND:
       zelf_str = ''
       if user_data['deelnemers'] == APART:
         zelf_str = 'voor jezelf '
       reply_text = 'Ik ga opslaan dat je %s %sgaat koken. Klopt dat?' % (dagje.lower(), zelf_str)
     else:
-      reply_text = '%s kookt %s al! Toch opslaan?' % (dagje, naam)
-    update.message.reply_text(reply_text, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+      reply_text = '%s kookt %s al! Toch opslaan?' % (dagje, koker['naam'])
+    update.message.reply_text(reply_text,
+                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
-    return BEVESTIGEN
+    return S_BEVESTIGEN
 
-def opslaan(bot, update, user_data):
-    logging.info('in opslaan')
+def vraag_opmerking(bot, update, user_data):
+    logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+    logging.info('in vraag_opmerking')
+    user_data['opslaan'] = update.message.text
+    if update.message.text == 'Ja':
+        logging.info('opmerking vragen')
+        reply_text = 'Wil je een opmerking toevoegen?'
+        reply_keyboard = [['Ja', 'Nee']]
+        update.message.reply_text(reply_text, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+        return S_OPMERKING
+    elif update.message.text == 'Weghalen':
+        logging.info('geen opmerking vragen want weghalen')
+        return nu_opslaan(bot, update, user_data)
+    elif update.message.text == 'Nee':
+        logging.info('geen opmerking vragen want nee')
+        return het_einde(bot, update)
+
+def plaats_opmerking(bot, update, user_data):
+    logging.info('received (%s): %s' % (update.message.from_user.first_name, update.message.text))
+    logging.info('in plaats_opmerking')
+    user_data['opmerking'] = False
+    if update.message.text == 'Ja':
+        logging.info('opmerking plaatsen.')
+        reply_text = 'Geef de opmerking maar.'
+        user_data['opmerking'] = True
+        update.message.reply_text(reply_text,
+                                  reply_markup=ReplyKeyboardRemove())
+        return S_OPSLAAN
+    else:
+        return nu_opslaan(bot, update, user_data)
+
+def nu_opslaan(bot, update, user_data):
+    logging.info('in nu_opslaan')
     if user_data['deelnemers'] == 'Samen':
         naam = update.message.from_user.first_name
     else:
         naam = APART
-    if update.message.text == 'Ja':
-      op_slaan(naam, user_data['datum'])
+
+    opmerking = ''
+    if user_data['opslaan'] == 'Ja':
+      if user_data['opmerking']:
+          opmerking = update.message.text
+      reply_text = 'Opgeslagen!'
+    elif user_data['opslaan'] == 'Weghalen':
+      naam = ONBEKEND
+      reply_text = 'Weggehaald!'
+
+    if user_data['opslaan'] != 'Nee':
+      logging.info('echt opslaan')
+      logging.info(naam)
+      logging.info(opmerking)
+      op_slaan(naam, opmerking, user_data['datum'])
       generate_ical()
-      update.message.reply_text('Opgeslagen!')
-    elif update.message.text == 'Weghalen':
-      op_slaan(ONBEKEND, user_data['datum'])
-      generate_ical()
-      update.message.reply_text('Weggehaald!')
+      update.message.reply_text(reply_text)
+
+    return het_einde(bot, update)
+
+def het_einde(bot, update):
     update.message.reply_text('Dat was het!',
                               reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
@@ -248,9 +303,11 @@ if __name__ == '__main__':
   conv_handler = ConversationHandler(
       entry_points=[CommandHandler('ikke', ikke)],
       states={
-          DEELNEMERS: [RegexHandler('^(Apart|Samen)$', deelnemers, pass_user_data=True)],
-          DAG: [RegexHandler('^(Vandaag|Morgen|Overmorgen|Maandag|Dinsdag|Woensdag|Donderdag|Vrijdag|Zaterdag|Zondag)$', bevestigen, pass_user_data=True)],
-          BEVESTIGEN: [RegexHandler('^(Ja|Nee|Weghalen)$', opslaan, pass_user_data=True)]
+          S_DEELNEMERS: [RegexHandler('^(Apart|Samen)$', deelnemers, pass_user_data=True)],
+          S_DAG: [RegexHandler('^(Vandaag|Morgen|Overmorgen|Maandag|Dinsdag|Woensdag|Donderdag|Vrijdag|Zaterdag|Zondag)$', bevestigen, pass_user_data=True)],
+          S_BEVESTIGEN: [RegexHandler('^(Ja|Nee|Weghalen)$', vraag_opmerking, pass_user_data=True)],
+          S_OPMERKING: [RegexHandler('^(Ja|Nee)$', plaats_opmerking, pass_user_data=True)],
+          S_OPSLAAN: [MessageHandler(Filters.text, nu_opslaan, pass_user_data=True)]
       },
       fallbacks=[CommandHandler('cancel', cancel)]
   )
