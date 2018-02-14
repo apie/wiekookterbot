@@ -5,6 +5,7 @@ from icalendar import *
 import datetime
 
 import queries
+from utils import ONBEKEND
 
 def generate_ical():
   tzinfo = pytz.timezone('Europe/Amsterdam')
@@ -12,10 +13,12 @@ def generate_ical():
   cal = Calendar()
 
   for koker in sorted(kokers, key=lambda x:x[0]):
-    event = Event()
     datum = koker[0]
     naam = koker[1]
     opmerking = koker[2]
+    if naam == ONBEKEND:
+      continue
+    event = Event()
     datumtype = datetime.datetime.strptime(datum, '%Y-%m-%d')
     event.add('summary', '%s kookt' % naam)
     event.add('location', naam)
