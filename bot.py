@@ -107,11 +107,11 @@ def overzicht(bot, update):
         else:
             daystr = weekday_to_daystr(datum.isoweekday())
         if naam == ONBEKEND:
-            reply_text += ['%s kookt er nog niemand.' % daystr.capitalize()]
+            reply_text += ['%s kookt er nog niemand' % daystr.capitalize()]
         elif naam == APART:
-            reply_text += ['%s koken we allebei zelf.%s' % (daystr.capitalize(), opmerking_tekst)]
+            reply_text += ['%s koken we allebei zelf %s' % (daystr.capitalize(), opmerking_tekst)]
         else:
-            reply_text += ['%s kookt %s.%s' % (daystr.capitalize(), naam, opmerking_tekst)]
+            reply_text += ['%s kookt %s %s' % (daystr.capitalize(), naam, opmerking_tekst)]
         datum += datetime.timedelta(days=1)
     reply_text = "\r\n".join(reply_text)
   logging.info('>> %s' % reply_text)
