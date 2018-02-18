@@ -63,11 +63,12 @@ def wiekookter(bot, update):
         reply_text = '%s kookt er nog niemand.' % daystr.capitalize()
     elif koker['naam'] == APART:
         reply_text = '%s koken we allebei zelf.' % daystr.capitalize()
+        opmerking = koker['opmerking']
     else:
         reply_text = '%s kookt %s.' % (daystr.capitalize(), koker['naam'])
         opmerking = koker['opmerking']
-        if opmerking:
-            reply_text = '\r\n'.join([reply_text, 'Opmerking: %s' % opmerking])
+    if opmerking:
+        reply_text = '\r\n'.join([reply_text, 'Opmerking: %s' % opmerking])
     logging.info('>> %s' % reply_text)
     update.message.reply_text(reply_text)
   else:
