@@ -102,7 +102,7 @@ def overzicht(bot, update):
           opmerking_tekst = ''
           opmerking = kokersdict[datumstr]['opmerking']
           if opmerking != '':
-            opmerking_tekst = ' (%s)' % opmerking
+            opmerking_tekst = '(%s)' % opmerking
         if dag in range(3):
             daystr = get_relative_daystr(dag)
         else:
