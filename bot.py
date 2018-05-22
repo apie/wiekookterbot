@@ -13,6 +13,10 @@ from utils import *
 from queries import *
 from ical import *
 from settings import API_KEY
+try:
+    from settings import CC_ID
+except:
+    CC_ID = None
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -269,6 +273,9 @@ def nu_opslaan(bot, update, user_data):
       logging.info(opmerking)
       op_slaan(naam, opmerking, user_data['datum'])
       generate_ical()
+      if CC_ID:
+          bot.send_message(chat_id=CC_ID,
+            text='[%s] Opslaan: %s, %s, %s' % (update.message.from_user.first_name, naam, opmerking, user_data['datum']))
       update.message.reply_text(reply_text)
 
     return het_einde(bot, update)
