@@ -102,4 +102,5 @@ ENV/
 
 settings.py
 bot.db
+ics/
 
