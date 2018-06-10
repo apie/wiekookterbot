@@ -63,6 +63,7 @@ def wiekookter(bot, update):
   if not error:
     koker = get_koker(datum)
     logging.info(koker)
+    opmerking = None
     if koker['naam'] == ONBEKEND:
         reply_text = '%s kookt er nog niemand.' % daystr.capitalize()
     elif koker['naam'] == APART:
